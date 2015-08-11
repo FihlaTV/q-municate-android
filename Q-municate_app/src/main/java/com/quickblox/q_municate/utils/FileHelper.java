@@ -16,7 +16,7 @@ import java.io.IOException;
 public class FileHelper {
 
     private File filesFolder;
-    private static final String folderName = "/Q-municate";
+    private static final String folderName = "/Sudo TALK";
     private static final String fileType = ".png";
 
     public FileHelper() {

@@ -9,7 +9,7 @@ public class DeviceInfoUtils {
     private static final String DEVICE = "Device: ";
     private static final String SDK_VERSION = "SDK version: ";
     private static final String MODEL = "Model: ";
-    private static final String APP_VERSION = "Q-municate build version: ";
+    private static final String APP_VERSION = "Sudo TALK build version: ";
     private static final String NEW_LINE = "\n";
     private static final String DIVIDER_STRING = "----------";
 
