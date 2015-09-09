@@ -22,6 +22,7 @@ import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -53,15 +54,21 @@ public class QBLoadGroupDialogCommand extends ServiceCommand {
         List<Integer> participantIdsList = dialog.getOccupants();
         try {
             List<Integer> onlineParticipantIdsList = multiChatHelper.getRoomOnlineParticipantList(dialog.getRoomJid());
+            List<QBUser> userList;
 
-            QBPagedRequestBuilder requestBuilder = new QBPagedRequestBuilder();
-            requestBuilder.setPage(ConstsCore.FL_FRIENDS_PAGE_NUM);
+            if (ConstsCore.PARTICIPANTS_PER_PAGE > participantIdsList.size()) {
+                QBPagedRequestBuilder requestBuilder = new QBPagedRequestBuilder();
+                requestBuilder.setPage(ConstsCore.PARTICIPANTS_PAGE_NUM);
 
-            //TODO temporary solution, need fixes
-            requestBuilder.setPerPage(ConstsCore.FL_FRIENDS_PER_PAGE_TEMP_VALUE);
+                //TODO temporary solution, need fixes
+                requestBuilder.setPerPage(ConstsCore.PARTICIPANTS_PER_PAGE);
 
-            Bundle requestParams = new Bundle();
-            List<QBUser> userList = QBUsers.getUsersByIDs(participantIdsList, requestBuilder, requestParams);
+                Bundle requestParams = new Bundle();
+                userList = QBUsers.getUsersByIDs(participantIdsList, requestBuilder, requestParams);
+            } else {
+                userList = loadMoreUsers(participantIdsList);
+            }
+
             Map<Integer, User> friendMap = FriendUtils.createUserMap(userList);
             for (Integer onlineParticipantId : onlineParticipantIdsList) {
                 User user = friendMap.get(onlineParticipantId);
@@ -82,6 +89,31 @@ public class QBLoadGroupDialogCommand extends ServiceCommand {
         Bundle params = new Bundle();
         params.putSerializable(QBServiceConsts.EXTRA_GROUP_DIALOG, groupDialog);
         return params;
+    }
+
+    private List<QBUser> loadMoreUsers(Collection<Integer> userIds) throws QBResponseException {
+        List<Integer> allUsersIds = new ArrayList<>(userIds);
+        List<QBUser> allUsers = new ArrayList<>();
+        List<Integer> tempListUsersIds;
+
+        do {
+            if (allUsersIds.size() > ConstsCore.PARTICIPANTS_PER_PAGE){
+                tempListUsersIds = allUsersIds.subList(0, ConstsCore.PARTICIPANTS_PER_PAGE);
+            } else {
+                tempListUsersIds = allUsersIds.subList(0, allUsersIds.size());
+            }
+
+            QBPagedRequestBuilder requestBuilder = new QBPagedRequestBuilder();
+            requestBuilder.setPage(ConstsCore.PARTICIPANTS_PAGE_NUM);
+            requestBuilder.setPerPage(tempListUsersIds.size());
+
+            Bundle params = new Bundle();
+            List<QBUser> tempUsersList = QBUsers.getUsersByIDs(tempListUsersIds, requestBuilder, params);
+            allUsers.addAll(tempUsersList);
+            tempListUsersIds.clear();
+        } while (allUsersIds.size() > 0);
+
+        return allUsers;
     }
 
     private class UserComparator implements Comparator<User> {

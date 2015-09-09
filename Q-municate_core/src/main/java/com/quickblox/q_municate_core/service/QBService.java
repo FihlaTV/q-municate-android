@@ -539,17 +539,22 @@ public class QBService extends Service {
                 int connectivityType = intent.getIntExtra(ConnectivityManager.EXTRA_NETWORK_TYPE, ConstsCore.NOT_INITIALIZED_VALUE);
                 // Check does connectivity equal mobile or wifi types
                 boolean connectivityState = false;
-                if (connectivityType == ConnectivityManager.TYPE_MOBILE
-                        || connectivityType == ConnectivityManager.TYPE_WIFI) {
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
 
-                    ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                    NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                    //should check null because in air plan mode it will be null
-                   if(networkInfo != null && networkInfo.isConnected()){
-                       // Check does connectivity EXISTS for connectivity type wifi or mobile internet
-                       // Pay attention on "!" symbol  in line below
-                       connectivityState = true;
-                   }
+
+                if (networkInfo != null){
+                    if (connectivityType == ConnectivityManager.TYPE_MOBILE
+                        || connectivityType == ConnectivityManager.TYPE_WIFI
+                        || networkInfo.getTypeName().equals("WIFI")
+                        || networkInfo.getTypeName().equals("MOBILE")) {
+                        //should check null because in air plan mode it will be null
+                        if (networkInfo.isConnected()) {
+                            // Check does connectivity EXISTS for connectivity type wifi or mobile internet
+                            // Pay attention on "!" symbol  in line below
+                            connectivityState = true;
+                        }
+                    }
                 }
                 return connectivityState;
             }

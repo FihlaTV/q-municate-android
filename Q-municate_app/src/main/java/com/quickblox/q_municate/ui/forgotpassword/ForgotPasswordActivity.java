@@ -82,6 +82,7 @@ public class ForgotPasswordActivity extends BaseActivity {
             String emailText = bundle.getString(QBServiceConsts.EXTRA_EMAIL);
             DialogUtils.showLong(ForgotPasswordActivity.this, getString(R.string.fpw_email_was_sent,
                     emailText));
+            finish();
         }
     }
 
