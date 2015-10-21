@@ -4,17 +4,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
 
 import com.quickblox.chat.QBChat;
 import com.quickblox.chat.QBChatService;
 import com.quickblox.chat.QBGroupChat;
 import com.quickblox.chat.QBGroupChatManager;
+import com.quickblox.chat.QBMessageStatusesManager;
 import com.quickblox.chat.QBPrivateChat;
 import com.quickblox.chat.QBPrivateChatManager;
 import com.quickblox.chat.exception.QBChatException;
 import com.quickblox.chat.listeners.QBIsTypingListener;
 import com.quickblox.chat.listeners.QBMessageListener;
+import com.quickblox.chat.listeners.QBMessageStatusListener;
 import com.quickblox.chat.listeners.QBPrivateChatManagerListener;
 import com.quickblox.chat.model.QBAttachment;
 import com.quickblox.chat.model.QBChatMessage;
@@ -52,6 +53,9 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
     protected QBDialog currentDialog;
     protected QBPrivateChatManager privateChatManager;
     protected PrivateChatMessageListener privateChatMessageListener;
+    protected QBMessageStatusesManager privateMessageStatusesManager;
+    protected QBMessageStatusListener privateMessageStatusListener;
+
     protected QBGroupChatManager groupChatManager;
     protected GroupChatMessageListener groupChatMessageListener;
 
@@ -63,6 +67,9 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
         super(context);
         privateChatMessageListener = new PrivateChatMessageListener();
         privateChatManagerListener = new PrivateChatManagerListener();
+
+        privateMessageStatusListener = new PrivateMessageStatusListener();
+
         privateChatIsTypingListener = new PrivateChatIsTypingListener();
 
         groupChatMessageListener = new GroupChatMessageListener();
@@ -87,6 +94,9 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
 
         privateChatManager = chatService.getPrivateChatManager();
         privateChatManager.addPrivateChatManagerListener(privateChatManagerListener);
+
+        privateMessageStatusesManager = chatService.getMessageStatusesManager();
+        privateMessageStatusesManager.addMessageStatusListener(privateMessageStatusListener);
 
         groupChatManager = chatService.getGroupChatManager();
     }
@@ -389,16 +399,6 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
         public void processError(QBGroupChat groupChat, QBChatException error, QBChatMessage originMessage) {
 
         }
-
-        @Override
-        public void processMessageDelivered(QBGroupChat groupChat, String messageID) {
-            // never called
-        }
-
-        @Override
-        public void processMessageRead(QBGroupChat groupChat, String messageID) {
-            // never called
-        }
     }
 
     private class PrivateChatMessageListener implements QBMessageListener<QBPrivateChat> {
@@ -420,24 +420,6 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
                 QBChatMessage originMessage) {
             // TODO: need to be implemented
         }
-
-        @Override
-        public void processMessageDelivered(QBPrivateChat privateChat, String messageId) {
-            updateMessageStatusDeliveredLocal(messageId, true);
-        }
-
-        @Override
-        public void processMessageRead(QBPrivateChat privateChat, String messageId) {
-            try {
-                MessageCache messageCache = new MessageCache();
-                messageCache.setId(messageId);
-                messageCache.setRead(true);
-
-                updateStatusMessageLocal(messageCache);
-            } catch (QBResponseException e) {
-                ErrorUtils.logError(e);
-            }
-        }
     }
 
     private class PrivateChatManagerListener implements QBPrivateChatManagerListener {
@@ -449,15 +431,37 @@ public abstract class  QBBaseChatHelper extends BaseHelper {
         }
     }
 
+    private class PrivateMessageStatusListener implements QBMessageStatusListener{
+
+        @Override
+        public void processMessageDelivered(String messageID, String dialogId, Integer userId) {
+            updateMessageStatusDeliveredLocal(messageID, true);
+
+        }
+
+        @Override
+        public void processMessageRead(String messageID, String dialogId, Integer userId) {
+            try {
+                MessageCache messageCache = new MessageCache();
+                messageCache.setId(messageID);
+                messageCache.setRead(true);
+
+                updateStatusMessageLocal(messageCache);
+            } catch (QBResponseException e) {
+                ErrorUtils.logError(e);
+            }
+        }
+    }
+
     private class PrivateChatIsTypingListener implements QBIsTypingListener<QBPrivateChat> {
 
         @Override
-        public void processUserIsTyping(QBPrivateChat privateChat) {
+        public void processUserIsTyping(QBPrivateChat qbPrivateChat, Integer integer) {
             notifyMessageTyping(true);
         }
 
         @Override
-        public void processUserStopTyping(QBPrivateChat privateChat) {
+        public void processUserStopTyping(QBPrivateChat qbPrivateChat, Integer integer) {
             notifyMessageTyping(false);
         }
     }
