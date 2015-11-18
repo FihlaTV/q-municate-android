@@ -1,6 +1,5 @@
 package com.quickblox.q_municate_core.core.gcm;
 
-import android.util.Log;
 
 import com.quickblox.core.helper.StringifyArrayList;
 import com.quickblox.messages.model.QBEnvironment;
