@@ -3,16 +3,14 @@ package com.quickblox.q_municate_core.qb.commands;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 
-import com.quickblox.core.exception.QBResponseException;
 import com.quickblox.core.request.QBPagedRequestBuilder;
 import com.quickblox.q_municate_core.core.command.ServiceCommand;
-import com.quickblox.q_municate_core.models.User;
 import com.quickblox.q_municate_core.service.QBService;
 import com.quickblox.q_municate_core.service.QBServiceConsts;
 import com.quickblox.q_municate_core.utils.ConstsCore;
-import com.quickblox.q_municate_core.utils.FriendUtils;
+import com.quickblox.q_municate_core.utils.UserFriendUtils;
+import com.quickblox.q_municate_user_service.model.QMUser;
 import com.quickblox.users.QBUsers;
 import com.quickblox.users.model.QBUser;
 
@@ -33,7 +31,7 @@ public class QBFindUsersCommand extends ServiceCommand {
     }
 
     @Override
-    public Bundle perform(Bundle extras) throws QBResponseException {
+    public Bundle perform(Bundle extras) throws Exception {
         String constraint = (String) extras.getSerializable(QBServiceConsts.EXTRA_CONSTRAINT);
         QBUser currentUser = (QBUser) extras.getSerializable(QBServiceConsts.EXTRA_USER);
         int page = extras.getInt(QBServiceConsts.EXTRA_PAGE);
@@ -43,9 +41,8 @@ public class QBFindUsersCommand extends ServiceCommand {
         requestBuilder.setPerPage(ConstsCore.FL_FRIENDS_PER_PAGE);
 
         Bundle requestParams = new Bundle();
-        Collection<QBUser> userList = QBUsers.getUsersByFullName(constraint, requestBuilder, requestParams);
-        Collection<User> userCollection = FriendUtils.createUsersList(userList);
-        userCollection.remove(FriendUtils.createUser(currentUser));
+        Collection<QBUser> userList = QBUsers.getUsersByFullName(constraint, requestBuilder, requestParams).perform();
+        Collection<QMUser> userCollection = UserFriendUtils.createUsersList(userList);
 
         Bundle params = new Bundle();
         params.putString(QBServiceConsts.EXTRA_CONSTRAINT, constraint);

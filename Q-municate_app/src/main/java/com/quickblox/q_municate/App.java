@@ -1,21 +1,40 @@
 package com.quickblox.q_municate;
 
-import android.app.Application;
 import android.content.Context;
+import android.support.multidex.MultiDexApplication;
+import android.util.Log;
 
+import com.crashlytics.android.Crashlytics;
+import com.crashlytics.android.core.CrashlyticsCore;
 import com.nostra13.universalimageloader.core.ImageLoader;
+import com.quickblox.auth.session.QBSettings;
 import com.quickblox.chat.QBChatService;
-import com.quickblox.core.QBSettings;
-import com.quickblox.q_municate.ui.media.MediaPlayerManager;
+import com.quickblox.chat.connections.tcp.QBTcpChatConnectionFabric;
+import com.quickblox.chat.connections.tcp.QBTcpConfigurationBuilder;
+import com.quickblox.core.QBHttpConnectionConfig;
+import com.quickblox.core.ServiceZone;
 import com.quickblox.q_municate.utils.ActivityLifecycleHandler;
-import com.quickblox.q_municate.utils.Consts;
-import com.quickblox.q_municate.utils.ImageUtils;
-import com.quickblox.q_municate_core.utils.PrefsHelper;
+import com.quickblox.q_municate.utils.StringObfuscator;
+import com.quickblox.q_municate.utils.helpers.ServiceManager;
+import com.quickblox.q_municate.utils.helpers.SharedHelper;
+import com.quickblox.q_municate.utils.image.ImageLoaderUtils;
+import com.quickblox.q_municate_auth_service.QMAuthService;
+import com.quickblox.q_municate_core.utils.ConstsCore;
+import com.quickblox.q_municate_db.managers.DataManager;
+import com.quickblox.q_municate_user_cache.QMUserCacheImpl;
+import com.quickblox.q_municate_user_service.QMUserService;
+import com.quickblox.q_municate_user_service.cache.QMUserCache;
 
-public class App extends Application {
+import io.fabric.sdk.android.Fabric;
+
+public class App extends MultiDexApplication {
+
+    private static final String TAG = App.class.getSimpleName();
 
     private static App instance;
-    private MediaPlayerManager soundPlayer;
+    private SharedHelper appSharedHelper;
+    private SessionListener sessionListener;
+
 
     public static App getInstance() {
         return instance;
@@ -23,26 +42,82 @@ public class App extends Application {
 
     @Override
     public void onCreate() {
+
         super.onCreate();
+        Log.i(TAG, "onCreate with update");
+        initFabric();
         initApplication();
         registerActivityLifecycleCallbacks(new ActivityLifecycleHandler());
     }
 
-    private void initImageLoader(Context context) {
-        ImageLoader.getInstance().init(ImageUtils.getImageLoaderConfiguration(context));
-    }
+    private void initFabric() {
+        Crashlytics crashlyticsKit = new Crashlytics.Builder()
+                .core(new CrashlyticsCore.Builder().disabled(BuildConfig.DEBUG).build())
+                .build();
 
-    public MediaPlayerManager getMediaPlayer() {
-        return soundPlayer;
+        Fabric.with(this, crashlyticsKit);
     }
 
     private void initApplication() {
         instance = this;
-        QBChatService.setDebugEnabled(true);
+
+        sessionListener = new SessionListener();
+        getAppSharedHelper();
+        initQb();
+        initDb();
         initImageLoader(this);
-        QBSettings.getInstance().fastConfigInit(Consts.QB_APP_ID, Consts.QB_AUTH_KEY,
-                Consts.QB_AUTH_SECRET);
-        soundPlayer = new MediaPlayerManager(this);
-        new PrefsHelper(this);
+        initServices();
     }
+
+    private void initQb() {
+        QBSettings.getInstance().init(getApplicationContext(),
+                StringObfuscator.getApplicationId(),
+                StringObfuscator.getAuthKey(),
+                StringObfuscator.getAuthSecret());
+        QBSettings.getInstance().setAccountKey(StringObfuscator.getAccountKey());
+
+        initDomains();
+        initHTTPConfig();
+
+        QBTcpConfigurationBuilder configurationBuilder = new QBTcpConfigurationBuilder()
+                .setAutojoinEnabled(false)
+                .setSocketTimeout(0);
+
+        QBChatService.setConnectionFabric(new QBTcpChatConnectionFabric(configurationBuilder));
+
+        QBChatService.setDebugEnabled(true);
+    }
+
+    private void initDomains() {
+        QBSettings.getInstance().setEndpoints(StringObfuscator.getApiEndpoint(), StringObfuscator.getChatEndpoint(), ServiceZone.PRODUCTION);
+        QBSettings.getInstance().setZone(ServiceZone.PRODUCTION);
+    }
+
+    private void initHTTPConfig(){
+        QBHttpConnectionConfig.setConnectTimeout(ConstsCore.HTTP_TIMEOUT_IN_SECONDS);
+        QBHttpConnectionConfig.setReadTimeout(ConstsCore.HTTP_TIMEOUT_IN_SECONDS);
+    }
+
+    private void initDb() {
+        DataManager.init(this);
+    }
+
+    private void initImageLoader(Context context) {
+        ImageLoader.getInstance().init(ImageLoaderUtils.getImageLoaderConfiguration(context));
+    }
+
+    private void initServices() {
+        QMAuthService.init();
+        QMUserCache userCache = new QMUserCacheImpl(this);
+        QMUserService.init(userCache);
+
+        ServiceManager.getInstance();
+    }
+
+    public synchronized SharedHelper getAppSharedHelper() {
+        return appSharedHelper == null
+                ? appSharedHelper = new SharedHelper(this)
+                : appSharedHelper;
+    }
+
 }

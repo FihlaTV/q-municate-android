@@ -6,11 +6,13 @@ import android.content.pm.PackageManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.qb.gson.Gson;
-import com.qb.gson.GsonBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.quickblox.core.exception.QBResponseException;
-import com.quickblox.q_municate_core.models.User;
 import com.quickblox.q_municate_core.models.UserCustomData;
+import com.quickblox.q_municate_db.utils.ErrorUtils;
+import com.quickblox.q_municate_user_service.model.QMUser;
 import com.quickblox.users.model.QBUser;
 
 import org.json.JSONException;
@@ -58,7 +60,7 @@ public class Utils {
         List<String> errors = e.getErrors();
         for (String error : errors) {
             Log.d(Utils.class.getSimpleName(), "error =" + error);
-            if (error != null && error.contains(msgError)) {
+            if (error.contains(msgError)) {
                 Log.d(Utils.class.getSimpleName(), error + " contains " + msgError);
                 return true;
             }
@@ -77,12 +79,12 @@ public class Utils {
         }
     }
 
-    public static QBUser friendToUser(User friend) {
+    public static QBUser friendToUser(QMUser friend) {
         if (friend == null) {
             return null;
         }
         QBUser user = new QBUser();
-        user.setId(friend.getUserId());
+        user.setId(friend.getId());
         user.setFullName(friend.getFullName());
         return user;
     }
@@ -111,9 +113,9 @@ public class Utils {
     public static String customDataToString(UserCustomData userCustomData) {
         JSONObject jsonObject = new JSONObject();
 
-        setJsonValue(jsonObject, UserCustomData.TAG_AVATAR_URL, userCustomData.getAvatar_url());
+        setJsonValue(jsonObject, UserCustomData.TAG_AVATAR_URL, userCustomData.getAvatarUrl());
         setJsonValue(jsonObject, UserCustomData.TAG_STATUS, userCustomData.getStatus());
-        setJsonValue(jsonObject, UserCustomData.TAG_IS_IMPORT, userCustomData.isIs_import());
+        setJsonValue(jsonObject, UserCustomData.TAG_IS_IMPORT, userCustomData.getIsImport());
 
         return jsonObject.toString();
     }
@@ -140,7 +142,7 @@ public class Utils {
 
         try {
             userCustomData = gson.fromJson(userCustomDataString, UserCustomData.class);
-        } catch (com.qb.gson.JsonSyntaxException e) {
+        } catch (JsonSyntaxException e) {
             ErrorUtils.logError(e);
         }
 

@@ -1,195 +1,271 @@
 package com.quickblox.q_municate.utils;
 
 import android.content.Context;
+import android.net.Uri;
+import android.support.design.widget.TextInputLayout;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 
-import com.quickblox.users.model.QBUser;
 import com.quickblox.q_municate.R;
+import com.quickblox.q_municate.ui.fragments.dialogs.base.OneButtonDialogFragment;
 import com.quickblox.q_municate_core.models.AppSession;
-import com.quickblox.q_municate.ui.uihelper.SimpleTextWatcher;
+import com.quickblox.q_municate_core.utils.ConstsCore;
+import com.quickblox.q_municate_core.utils.MediaUtils;
+import com.quickblox.q_municate_db.models.Attachment;
+import com.quickblox.users.model.QBUser;
 
+import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ValidationUtils extends SimpleTextWatcher {
+public class ValidationUtils {
 
-    private final int UNAUTHORIZED_ERROR_CODE = 401;
-    private final int FULLNAME_IS_TOO_SHORT_ERROR_CODE = 422;
-    private final int EMAIL_SHOULD_LOOK_LIKE_AN_EMAIL_ADDRESS_ERROR_CODE = 422;
-    private final int PASSWORD_IS_TOO_SHORT_ERROR_CODE = 422;
-    private final int PASSWORD_SHOULD_CONTAIN_ALPHANUMERIC_AND_PUNCTUATION_CHARACTERS_ERROR_CODE = 422;
+    private static final int FULL_NAME_MIN_LENGTH = 3;
+    private static final int FULL_NAME_MAX_LENGTH = 200;
+    private static final int PASSWORD_MIN_LENGTH = 8;
+    private final static String NULL = "null";
 
     private Context context;
-    private EditText[] fieldsArray;
-    private String[] fieldsErrorArray;
+    private QBUser qbUser;
 
-    public ValidationUtils(Context context, EditText[] fieldsArray, String[] fieldsErrorArray) {
+    public ValidationUtils(Context context) {
         this.context = context;
-        this.fieldsArray = fieldsArray;
-        this.fieldsErrorArray = fieldsErrorArray;
-        initListeners();
+        this.qbUser = AppSession.getSession().getUser();
     }
 
-    private void initListeners() {
-        for (int i = 0; i < fieldsArray.length; i++) {
-            fieldsArray[i].addTextChangedListener(this);
-        }
-    }
+    public boolean isLoginDataValid(TextInputLayout emailTextInputLayout,
+                                    TextInputLayout passwordTextInputLayout, String email, String password) {
+        boolean isEmailEntered = !TextUtils.isEmpty(email.trim());
+        boolean isPasswordEntered = !TextUtils.isEmpty(password.trim());
 
-    @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-        super.onTextChanged(s, start, before, count);
-        setError(null);
-    }
-
-    public boolean isValidUserDate(String fullNameText, String emailText, String passwordText) {
-        boolean isFullNameValid = isValidName(fieldsArray[0], fullNameText);
-        boolean isEmailValid = isValidEmail(fieldsArray[1], emailText);
-        boolean isPasswordValid = isValidPassword(fieldsArray[2], passwordText);
-
-        if (isFullNameValid && isEmailValid && isPasswordValid) {
-            return true;
+        if (isEmailEntered && isPasswordEntered) {
+            boolean valid = true;
+            if (!isEmailValid(email)) {
+                valid = false;
+                emailTextInputLayout.setError(context.getString(R.string.auth_email_field_is_incorrect));
+            }
+            if (password.length() < PASSWORD_MIN_LENGTH) {
+                valid = false;
+                passwordTextInputLayout.setError(context.getString(R.string.auth_password_field_is_too_short));
+            }
+            return valid;
+        } else if (!isEmailEntered && !isPasswordEntered) {
+            emailTextInputLayout.setError(context.getString(R.string.auth_not_all_fields_entered));
+            passwordTextInputLayout.setError(context.getString(R.string.auth_not_all_fields_entered));
         } else {
+            if (!isEmailEntered) {
+                emailTextInputLayout.setError(context.getString(R.string.auth_email_field_not_entered));
+            }
+            if (!isPasswordEntered) {
+                passwordTextInputLayout.setError(context.getString(R.string.auth_password_field_not_entered));
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isSignUpDataValid(TextInputLayout fullNameTextInputLayout,
+                                     TextInputLayout emailTextInputLayout, TextInputLayout passwordTextInputLayout, String fullName,
+                                     String email, String password) {
+        boolean isFullNameEntered = !TextUtils.isEmpty(fullName.trim());
+        boolean isEmailEntered = !TextUtils.isEmpty(email.trim());
+        boolean isPasswordEntered = !TextUtils.isEmpty(password.trim());
+
+        if (isFullNameEntered && isEmailEntered && isPasswordEntered) {
+            boolean valid = true;
+            if (fullName.length() < FULL_NAME_MIN_LENGTH) {
+                valid = false;
+                fullNameTextInputLayout.setError(context.getString(R.string.auth_full_name_field_is_too_short));
+            } else if (fullName.length() > FULL_NAME_MAX_LENGTH) {
+                valid = false;
+                fullNameTextInputLayout.setError(context.getString(R.string.auth_full_name_field_is_too_long));
+            }
+            if (!isEmailValid(email)) {
+                valid = false;
+                emailTextInputLayout.setError(context.getString(R.string.auth_email_field_is_incorrect));
+            }
+            if (password.length() < PASSWORD_MIN_LENGTH) {
+                valid = false;
+                passwordTextInputLayout.setError(context.getString(R.string.auth_password_field_is_too_short));
+            }
+            return valid;
+        } else if (!isFullNameEntered && !isEmailEntered && !isPasswordEntered) {
+            fullNameTextInputLayout.setError(context.getString(R.string.auth_not_all_fields_entered));
+            emailTextInputLayout.setError(context.getString(R.string.auth_not_all_fields_entered));
+            passwordTextInputLayout.setError(context.getString(R.string.auth_not_all_fields_entered));
+        } else {
+            if (!isFullNameEntered) {
+                fullNameTextInputLayout
+                        .setError(context.getString(R.string.auth_full_name_field_not_entered));
+            }
+            if (!isEmailEntered) {
+                emailTextInputLayout.setError(context.getString(R.string.auth_email_field_not_entered));
+            }
+            if (!isPasswordEntered) {
+                passwordTextInputLayout.setError(context.getString(R.string.auth_password_field_not_entered));
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isChangePasswordDataValid(TextInputLayout oldPasswordTextInputLayout,
+                                             TextInputLayout newPasswordTextInputLayout, String oldPassword, String newPassword) {
+        boolean isOldPasswordEntered = !TextUtils.isEmpty(oldPassword.trim());
+        boolean isNewPasswordEntered = !TextUtils.isEmpty(newPassword.trim());
+
+        if (isOldPasswordEntered && isNewPasswordEntered) {
+            if (!qbUser.getPassword().equals(oldPassword)) {
+                oldPasswordTextInputLayout.setError(context.getString(R.string.change_password_old_password_wrong));
+            } else {
+                return true;
+            }
+        } else if (!isOldPasswordEntered && !isNewPasswordEntered) {
+            oldPasswordTextInputLayout.setError(context.getString(R.string.change_password_all_fields_not_entered));
+            newPasswordTextInputLayout.setError(context.getString(R.string.change_password_all_fields_not_entered));
+        } else {
+            if (!isOldPasswordEntered) {
+                oldPasswordTextInputLayout
+                        .setError(context.getString(R.string.change_password_old_password_not_entered));
+            }
+            if (!isNewPasswordEntered) {
+                newPasswordTextInputLayout
+                        .setError(context.getString(R.string.change_password_new_password_not_entered));
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isFullNameValid(TextInputLayout fullNameTextInputLayout, String newFullName) {
+        boolean fullNameEntered = !TextUtils.isEmpty(newFullName.trim());
+        boolean valid = true;
+
+        if (fullNameEntered) {
+            if (newFullName.length() < FULL_NAME_MIN_LENGTH) {
+                valid = false;
+                fullNameTextInputLayout.setError(context.getString(R.string.auth_full_name_field_is_too_short));
+            } else if (newFullName.length() > FULL_NAME_MAX_LENGTH) {
+                valid = false;
+                fullNameTextInputLayout.setError(context.getString(R.string.auth_full_name_field_is_too_long));
+            }
+        } else {
+            valid = false;
+            fullNameTextInputLayout.setError(context.getString(R.string.profile_full_name_not_entered));
+        }
+
+        return valid;
+    }
+
+    public boolean isForgotPasswordDataValid(TextInputLayout emailTextInputLayout, String email) {
+        boolean isEmailEntered = !TextUtils.isEmpty(email.trim());
+
+        if (isEmailEntered) {
+            if (!isEmailValid(email)) {
+                emailTextInputLayout.setError(context.getString(R.string.forgot_password_email_field_is_incorrect));
+            } else {
+                return true;
+            }
+        } else {
+            emailTextInputLayout.setError(context.getString(R.string.forgot_password_email_field_not_entered));
+        }
+
+        return false;
+    }
+
+    public static boolean isNull(String value) {
+        return value == null || value.equals(NULL);
+    }
+
+    public static boolean validateAttachment(FragmentManager fragmentManager, String[] supportedAttachmentTypes, Attachment.Type type, Object attachment) {
+
+        if (!isSupportAttachmentType(supportedAttachmentTypes, type)) {
+            OneButtonDialogFragment.show(fragmentManager, R.string.dlg_unsupported_file, false);
             return false;
         }
-    }
 
-    public boolean isValidUserDate(String emailText, String passwordText) {
-        boolean isEmailValid = isValidEmail(fieldsArray[0], emailText);
-        boolean isPasswordValid = isValidPassword(fieldsArray[1], passwordText);
+        if (attachment instanceof File) {
+            String mimeType = StringUtils.getMimeType(Uri.fromFile((File) attachment));
+            if (!isValidFileType(mimeType)) {
+                OneButtonDialogFragment.show(fragmentManager, R.string.dlg_unsupported_file, false);
+                return false;
+            }
 
-        if (isEmailValid && isPasswordValid) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+            if (!isValidMaxLengthName((File) attachment)) {
+                OneButtonDialogFragment.show(fragmentManager, R.string.dlg_filename_long, false);
+                return false;
+            }
 
-    public boolean isValidName(EditText fullNameEditText, String fullNameText) {
-
-        int counterSymbols = 0;
-        char[] fullNameTextToCharArray = fullNameText.toCharArray();
-        char[] symbols = {'<', '>', ';'};
-
-        for (int i = 0; i < fullNameTextToCharArray.length; i++) {
-            for (int j = 0; j < symbols.length; j++) {
-                if (fullNameTextToCharArray[i] == symbols[j]) {
-                    counterSymbols++;
-                    break;
+            if (type.equals(Attachment.Type.IMAGE)) {
+                if (!isValidMaxImageSize((File) attachment)) {
+                    OneButtonDialogFragment.show(fragmentManager, R.string.dlg_image_big, false);
+                    return false;
+                }
+            } else if (type.equals(Attachment.Type.AUDIO) || type.equals(Attachment.Type.VIDEO)) {
+                if (!isValidMaxAudioVideoSize((File) attachment)) {
+                    OneButtonDialogFragment.show(fragmentManager, R.string.dlg_audio_video_big, false);
+                    return false;
+                }
+            }
+            if (type.equals(Attachment.Type.AUDIO)) {
+                if (!isValidMinAudioDuration((File) attachment)) {
+                    return false;
                 }
             }
         }
-
-        if (!fullNameText.isEmpty()) {
-            if (fullNameText.length() < 3) {
-                fullNameEditText.setError(context.getString(R.string.error_name_must_be_more_than_2_characters_from_app));
-                return false;
-            } else if (fullNameText.length() > 50){
-                fullNameEditText.setError(context.getString(R.string.error_is_too_long_maximum_is_50_characters_from_app));
-                return false;
-            } else if (counterSymbols != 0) {
-                fullNameEditText.setError(context.getString(R.string.error_name_must_do_not_contain_special_characters_from_app));
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            fullNameEditText.setError(context.getString(R.string.dlg_not_fullname_field_entered));
-            return false;
-        }
+        return true;
     }
 
-    public boolean isValidEmail(EditText emailEditText, String emailText){
-        boolean isMailValid = android.util.Patterns.EMAIL_ADDRESS.matcher(emailText).matches();
-
-        if (!isMailValid){
-            emailEditText.setError(context.getString(R.string.error_please_enter_a_valid_email_from_app));
-        }
-
-        return isMailValid;
+    private static boolean isValidMaxLengthName(File file) {
+        return file.getName().length() < ConstsCore.MAX_FILENAME_LENGTH;
     }
 
-    public boolean isValidPassword(EditText passwordEditText, String passwordText) {
-        boolean onlyCorrectSymbols;
-        Pattern p = Pattern.compile("^[-A-Za-z0-9\\]\\[\\!\\\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,\\.\\/\\:\\;\\<\\=\\>\\?\\@\\\\\\^\\_\\`\\{\\|\\}\\~]+");
-        Matcher m = p.matcher(passwordText);
-        onlyCorrectSymbols = m.matches();
-
-        if (!passwordText.isEmpty()) {
-            if (passwordEditText.length() < 8) {
-                passwordEditText.setError(context.getString(R.string.error_password_must_be_more_than_7_characters_from_app));
-                return false;
-            } else if (passwordEditText.length() > 40){
-                    passwordEditText.setError(context.getString(R.string.error_password_must_do_not_be_more_than_40_characters_from_app));
-                    return false;
-            } else if (!onlyCorrectSymbols) {
-                passwordEditText.setError(context.getString(R.string.error_password_must_do_not_contain_non_Latin_characters_and_spaces_from_app));
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            passwordEditText.setError(context.getString(R.string.dlg_not_password_field_entered));
-            return false;
-        }
+    private static boolean isValidMaxImageSize(File file) {
+        return file.length() < ConstsCore.MAX_IMAGE_SIZE;
     }
 
-    public boolean isValidChangePasswordData(String oldPasswordText, String newPasswordText) {
-        QBUser user = AppSession.getSession().getUser();
-
-        boolean isOldPasswordEntered = !TextUtils.isEmpty(oldPasswordText);
-        boolean isNewPasswordValid = isValidPassword(fieldsArray[1], newPasswordText);
-
-        if (isOldPasswordEntered && isNewPasswordValid) {
-            if (!user.getPassword().equals(oldPasswordText)) {
-                setError(0, context.getString(R.string.dlg_old_password_wrong));
-                return false;
-            } else {
-                return true;
-            }
-        } else if (!isOldPasswordEntered) {
-            setError(0, fieldsErrorArray[0]);
-            return false;
-        } else {
-            return false;
-        }
+    private static boolean isValidMaxAudioVideoSize(File file) {
+        return file.length() < ConstsCore.MAX_AUDIO_VIDEO_SIZE;
     }
 
-    public boolean isValidForgotPasswordData(String emailText) {
-        boolean isEmailValid = isValidEmail(fieldsArray[0], emailText);
-
-        if (isEmailValid) {
-            return true;
-        } else {
-            return false;
-        }
+    private static boolean isValidMinAudioDuration(File file) {
+        int duration = MediaUtils.getMetaData(file.getPath()).durationSec();
+        return duration >= ConstsCore.MIN_RECORD_DURATION_IN_SEC;
     }
 
-    public void setError(String error) {
-        for (int i = 0; i < fieldsArray.length; i++) {
-            fieldsArray[i].setError(error);
-        }
-    }
-
-    private void setError(int index, String error) {
-        fieldsArray[index].setError(error);
-    }
-
-    private void setErrors(boolean[] isFieldsEnteredArray) {
-        for (int i = 0; i < fieldsArray.length; i++) {
-            fieldsArray[i].setError(isFieldsEnteredArray[i] ? null : fieldsErrorArray[i]);
-        }
-    }
-
-    // TODO SF temp method
-    public String getErrorMessageByCode(int errorCode) {
-        String errorMessage = "ERROR";
-        switch (errorCode) {
-            case 1:
-                errorMessage = "error 1";
+    private static boolean isSupportAttachmentType(String[] supportedAttachmentTypes, Attachment.Type type) {
+        boolean supported = false;
+        for (String supportedTypeSrt : supportedAttachmentTypes) {
+            Attachment.Type supportedType = Attachment.Type.valueOf(supportedTypeSrt);
+            if (type.equals(supportedType)) {
+                supported = true;
                 break;
+            }
         }
-        return errorMessage;
+
+        return supported;
     }
+
+    private static boolean isValidFileType(String mimeType) {
+        String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        return isValidMimeType(mimeType) || isValidExtension(extension);
+    }
+
+    private static boolean isValidMimeType(String mimeType) {
+        return !TextUtils.isEmpty(mimeType) && (mimeType.startsWith(MimeType.IMAGE_MIME_PREFIX) || mimeType.equals(MimeType.AUDIO_MIME_MP3));
+    }
+
+    private static boolean isValidExtension(String extension) {
+        return !TextUtils.isEmpty(extension) && (extension.equals(MimeType.VIDEO_MIME_EXTENSION_MP4) || extension.equals(MimeType.AUDIO_MIME_EXTENSION_MP3));
+    }
+
+    private boolean isEmailValid(String email) {
+        String expression = "^[\\w\\.-]+@([\\w\\-]+\\.)+[A-Z]{2,4}$";
+        Pattern pattern = Pattern.compile(expression, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+
 }

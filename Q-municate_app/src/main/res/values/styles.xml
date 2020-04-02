@@ -1,105 +1,168 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
 
-    <style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar">
-        <item name="android:actionBarStyle">@style/MyActionBar</item>
-        <item name="android:actionModeStyle">@style/MyActionMode</item>
+    <style name="ToolbarStyle">
+        <item name="android:minHeight">?actionBarSize</item>
+        <item name="android:background">?colorPrimary</item>
+        <item name="popupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="theme">@style/ToolbarTheme</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
     </style>
 
-    <!-- ActionBar styles -->
-    <style name="MyActionBar" parent="android:Widget.ActionBar">
-        <item name="android:background">@color/action_bar_background_color</item>
-        <item name="android:displayOptions">showTitle</item>
-        <item name="android:titleTextStyle">@style/MyActionBarTitleText</item>
-        <item name="android:indeterminateProgressStyle">@style/IndeterminateProgressStyle</item>
+    <style name="ToolbarStyleCall">
+        <item name="android:minHeight">?actionBarSize</item>
+        <item name="popupTheme">@style/ThemeOverlay.AppCompat</item>
+        <item name="theme">@style/ToolbarThemeCall</item>
     </style>
 
-    <!-- ActionBar title body -->
-    <style name="MyActionBarTitleText" parent="android:TextAppearance.Holo.Widget.ActionBar.Title">
-        <item name="android:textColor">@color/white</item>
+    <style name="ButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/selector_button_general</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:textColor">@color/text_dark</item>
     </style>
 
-    <style name="AppTheme.NoActionBar" parent="android:Theme.Holo.Light.NoActionBar">
-        <item name="android:windowNoTitle">true</item>
+    <style name="EditTextStyle" parent="Widget.AppCompat.EditText">
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textColorHint">@color/text_light_dark</item>
     </style>
 
-    <style name="MyActionMode">
-        <item name="android:actionModeCloseDrawable">@drawable/badge_action_mode</item>
-        <item name="android:actionModeBackground">@drawable/badge_action_mode</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="android:titleTextStyle">@style/MyActionModeTitleText</item>
-    </style>
-
-    <style name="MyActionModeTitleText" parent="android:TextAppearance.Holo.Widget.ActionMode.Title">
-        <item name="android:textColor">@color/white</item>
-    </style>
-
-    <style name="baseToggleBtn">
-
-        <item name="android:textOff"></item>
-        <item name="android:textOn"></item>
-    </style>
-
-    <!-- EmojiTabs styles -->
-    <style name="EmojiTabImageButton" parent="android:Widget.ImageButton">
-        <item name="android:background">@drawable/tab_emoji_selector</item>
-        <item name="android:layout_width">0dip</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:layout_weight">1</item>
-    </style>
-
-    <!-- Avatars ImageView style -->
-    <style name="AvatarImageView">
+    <style name="AvatarImageViewStyle.Common">
         <item name="android:layout_width">@dimen/image_view_big_avatar_layout_width</item>
         <item name="android:layout_height">@dimen/image_view_big_avatar_layout_height</item>
         <item name="android:layout_gravity">center|top</item>
         <item name="android:scaleType">centerCrop</item>
-        <item name="android:src">@drawable/placeholder_user</item>
     </style>
 
-    <style name="IndeterminateProgressStyle" parent="@android:style/Widget.ProgressBar">
-        <item name="android:minHeight">24dp</item>
-        <item name="android:maxHeight">24dp</item>
-        <item name="android:minWidth">32dp</item>
-        <item name="android:maxWidth">32dp</item>
-    </style>
-
-    <style name="DoneCancelBar">
+    <style name="SearchRadioButtonStyle">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">@dimen/action_bar_height</item>
-        <item name="android:orientation">horizontal</item>
-        <item name="android:divider">@drawable/ic_action_divider</item>
-        <item name="android:showDividers" tools:ignore="NewApi">middle</item>
-        <item name="android:dividerPadding" tools:ignore="NewApi">12dp</item>
-        <item name="android:background">@color/action_button_bar</item>
-    </style>
-
-    <style name="ActionButton">
-        <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_height">@dimen/contact_item_header_height</item>
+        <item name="android:textColor">@drawable/selector_contacts_tab_text</item>
+        <item name="android:textSize">@dimen/text_size</item>
+        <item name="android:button">@android:color/transparent</item>
+        <item name="android:gravity">center</item>
         <item name="android:layout_weight">1</item>
-        <item name="android:background">@drawable/action_selectable_background</item>
+        <item name="android:background">@drawable/selector_contacts_mode_tab</item>
     </style>
 
-    <style name="ActionButtonText">
+    <style name="TextViewDrawableStyle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_gravity">center</item>
-        <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingRight">20dp</item> <!-- Offsets left drawable -->
-        <item name="android:drawablePadding">8dp</item>
-        <item name="android:textColor">@color/action_button_text</item>
-        <item name="android:textStyle">bold</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:drawablePadding">10dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textSize">@dimen/text_size</item>
+        <item name="android:background">@drawable/selector_button_general</item>
     </style>
 
-    <style name="ActionButtonText.Done">
-        <item name="android:drawableLeft">@drawable/ic_action_done</item>
-        <item name="android:text">@string/dlg_done</item>
+    <style name="TextViewDrawableStyle.White">
+        <item name="android:textColor">@color/text_white</item>
     </style>
 
-    <style name="ActionButtonText.Cancel">
-        <item name="android:drawableLeft">@drawable/ic_action_cancel</item>
-        <item name="android:text">@string/dlg_cancel</item>
+    <style name="TextViewDrawableStyle.Dark">
+        <item name="android:textColor">@color/text_dark</item>
     </style>
 
+    <style name="TextViewLinkStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/selector_button_general</item>
+        <item name="android:gravity">center</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:textSize">@dimen/text_size</item>
+    </style>
+
+    <style name="TextViewLinkStyle.Dark">
+        <item name="android:textColor">@color/text_light_dark</item>
+    </style>
+
+    <style name="TextViewLinkStyle.Red">
+        <item name="android:textColor">@color/text_red</item>
+    </style>
+
+    <style name="TextViewLinkStyle.Green">
+        <item name="android:textColor">@color/green</item>
+    </style>
+
+    <style name="ChatActionButtonStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">@dimen/chat_input_message_height</item>
+        <item name="android:background">@drawable/selector_button_general</item>
+        <item name="android:gravity">center</item>
+        <item name="android:padding">5dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textSize">@dimen/text_size</item>
+    </style>
+
+    <style name="SettingsButtonStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/selector_button_general</item>
+        <item name="android:gravity">left</item>
+        <item name="android:padding">@dimen/padding_large</item>
+        <item name="android:textSize">@dimen/text_size</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="LocalVideoViewStyle">
+        <item name="android:layout_width">120dp</item>
+        <item name="android:layout_height">180dp</item>
+        <item name="android:layout_alignParentBottom">true</item>
+        <item name="android:layout_alignParentRight">true</item>
+        <item name="android:layout_marginRight">@dimen/padding_minimal_material</item>
+        <item name="android:layout_marginBottom">@dimen/padding_minimal_material</item>
+    </style>
+
+    <style name="WrapContent">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="MatchParent">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+    </style>
+
+    <style name="MatchWidth">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="FabStyle" parent="WrapContent">
+        <item name="android:layout_alignParentBottom">true</item>
+        <item name="android:layout_alignParentRight">true</item>
+        <item name="android:layout_marginBottom">@dimen/fab_margin_bottom</item>
+        <item name="android:layout_marginRight">@dimen/fab_margin_right</item>
+        <item name="android:layout_gravity">right|bottom</item>
+        <item name="borderWidth">0dp</item>
+        <item name="fabSize">normal</item>
+    </style>
+
+    <style name="AvatarImageViewStyle.Right">
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <style name="TextViewTextMsg.Left">
+        <item name="android:textColor">@color/dark_gray</item>
+        <item name="android:autoLink">web|phone|email</item>
+    </style>
+
+    <style name="TextViewTextMsg.Right">
+        <item name="android:textColor">@color/dark_gray</item>
+        <item name="android:autoLink">web|phone|email</item>
+    </style>
+
+    <style name="BorderlessImageButtonStyle" parent="WrapContent">
+        <item name="android:background">@null</item>
+        <item name="android:padding">@dimen/padding_common</item>
+        <item name="android:scaleType">centerInside</item>
+    </style>
+
+    <style name="FirebaseStyle" parent="Theme.AppCompat.Light">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent</item>
+
+        <item name="colorControlNormal">@color/material_green_500</item>
+        <item name="colorControlActivated">@color/material_green_500</item>
+    </style>
 </resources>

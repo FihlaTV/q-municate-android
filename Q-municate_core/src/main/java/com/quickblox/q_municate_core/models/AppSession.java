@@ -1,14 +1,13 @@
 package com.quickblox.q_municate_core.models;
 
 import android.text.TextUtils;
+import android.util.Log;
 
-import com.quickblox.core.exception.BaseServiceException;
-import com.quickblox.core.server.BaseService;
-import com.quickblox.auth.QBAuth;
-import com.quickblox.q_municate_core.utils.ConstsCore;
-import com.quickblox.q_municate_core.utils.PrefsHelper;
+import com.quickblox.auth.model.QBProvider;
+import com.quickblox.auth.session.QBSessionManager;
+import com.quickblox.auth.session.QBSessionParameters;
+import com.quickblox.q_municate_core.utils.helpers.CoreSharedHelper;
 import com.quickblox.users.model.QBUser;
-import com.quickblox.q_municate_core.utils.ErrorUtils;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -17,19 +16,30 @@ public class AppSession implements Serializable {
 
     private static final Object lock = new Object();
     private static AppSession activeSession;
-    private final LoginType loginType;
-    private QBUser user;
-    private String sessionToken;
 
-    private AppSession(LoginType loginType, QBUser user, String sessionToken) {
-        this.loginType = loginType;
-        this.user = user;
-        this.sessionToken = sessionToken;
+    private CoreSharedHelper coreSharedHelper;
+    private LoginType loginType;
+    private QBUser qbUser;
+
+    private ChatState chatState = ChatState.FOREGROUND;
+
+    private AppSession(QBUser qbUser) {
+        coreSharedHelper = CoreSharedHelper.getInstance();
+        this.qbUser = qbUser;
+        this.loginType = getLoginTypeBySessionParameters(QBSessionManager.getInstance().getSessionParameters());
         save();
     }
 
-    public static void startSession(LoginType loginType, QBUser user, String sessionToken) {
-        activeSession = new AppSession(loginType, user, sessionToken);
+    public void updateState(ChatState state){
+        chatState = state;
+    }
+
+    public ChatState getChatState() {
+        return chatState;
+    }
+
+    public static void startSession(QBUser user) {
+        activeSession = new AppSession(user);
     }
 
     private static AppSession getActiveSession() {
@@ -39,36 +49,35 @@ public class AppSession implements Serializable {
     }
 
     public static AppSession load() {
-        PrefsHelper helper = PrefsHelper.getPrefsHelper();
-        String loginTypeRaw = helper.getPref(PrefsHelper.PREF_LOGIN_TYPE, LoginType.EMAIL.toString());
-        int userId = helper.getPref(PrefsHelper.PREF_USER_ID, ConstsCore.NOT_INITIALIZED_VALUE);
-        String userFullName = helper.getPref(PrefsHelper.PREF_USER_FULL_NAME, ConstsCore.EMPTY_STRING);
-        String sessionToken = helper.getPref(PrefsHelper.PREF_SESSION_TOKEN, ConstsCore.EMPTY_STRING);
+
+        int userId = CoreSharedHelper.getInstance().getUserId();
+        String userFullName = CoreSharedHelper.getInstance().getUserFullName();
+
         QBUser qbUser = new QBUser();
         qbUser.setId(userId);
+        qbUser.setEmail(CoreSharedHelper.getInstance().getUserEmail());
+        qbUser.setPassword(CoreSharedHelper.getInstance().getUserPassword());
         qbUser.setFullName(userFullName);
-        LoginType loginType = LoginType.valueOf(loginTypeRaw);
-        return new AppSession(loginType, qbUser, sessionToken);
-    }
+        qbUser.setFacebookId(CoreSharedHelper.getInstance().getFBId());
+        qbUser.setTwitterId(CoreSharedHelper.getInstance().getTwitterId());
+        qbUser.setTwitterDigitsId(CoreSharedHelper.getInstance().getTwitterDigitsId());
+        qbUser.setCustomData(CoreSharedHelper.getInstance().getUserCustomData());
 
-    public static void saveRememberMe(boolean value) {
-        PrefsHelper.getPrefsHelper().savePref(PrefsHelper.PREF_REMEMBER_ME, value);
+        activeSession = new AppSession(qbUser);
+
+        return activeSession;
     }
 
     public static boolean isSessionExistOrNotExpired(long expirationTime) {
-        try {
-            BaseService baseService = QBAuth.getBaseService();
-            String token = baseService.getToken();
+            QBSessionManager qbSessionManager = QBSessionManager.getInstance();
+            String token = qbSessionManager.getToken();
             if (token == null) {
+                Log.d("AppSession", "token == null");
                 return false;
             }
-            Date tokenExpirationDate = baseService.getTokenExpirationDate();
+            Date tokenExpirationDate = qbSessionManager.getTokenExpirationDate();
             long tokenLiveOffset = tokenExpirationDate.getTime() - System.currentTimeMillis();
             return tokenLiveOffset > expirationTime;
-        } catch (BaseServiceException e) {
-            ErrorUtils.logError(e);
-        }
-        return false;
     }
 
     public static AppSession getSession() {
@@ -80,42 +89,72 @@ public class AppSession implements Serializable {
     }
 
     public void closeAndClear() {
-        PrefsHelper helper = PrefsHelper.getPrefsHelper();
-        helper.delete(PrefsHelper.PREF_USER_EMAIL);
-        helper.delete(PrefsHelper.PREF_LOGIN_TYPE);
-        helper.delete(PrefsHelper.PREF_SESSION_TOKEN);
-        helper.delete(PrefsHelper.PREF_USER_ID);
+        coreSharedHelper.clearUserData();
+
         activeSession = null;
     }
 
     public QBUser getUser() {
-        return user;
+        return qbUser;
     }
 
     public void save() {
-        PrefsHelper prefsHelper = PrefsHelper.getPrefsHelper();
-        prefsHelper.savePref(PrefsHelper.PREF_LOGIN_TYPE, loginType.toString());
-        prefsHelper.savePref(PrefsHelper.PREF_SESSION_TOKEN, sessionToken);
-        saveUser(user, prefsHelper);
+        saveUser(qbUser);
     }
 
-    public void updateUser(QBUser user) {
-        this.user = user;
-        saveUser(this.user, PrefsHelper.getPrefsHelper());
+    public void updateUser(QBUser qbUser) {
+        this.qbUser = qbUser;
+        saveUser(this.qbUser);
     }
 
-    private void saveUser(QBUser user, PrefsHelper prefsHelper) {
-        prefsHelper.savePref(PrefsHelper.PREF_USER_ID, user.getId());
-        prefsHelper.savePref(PrefsHelper.PREF_USER_EMAIL, user.getEmail());
-        prefsHelper.savePref(PrefsHelper.PREF_USER_FULL_NAME, user.getFullName());
-        prefsHelper.savePref(PrefsHelper.PREF_USER_PASSWORD, user.getPassword());
+    private void saveUser(QBUser user) {
+        coreSharedHelper.saveUserId(user.getId());
+        coreSharedHelper.saveUserEmail(user.getEmail());
+        coreSharedHelper.saveUserPassword(user.getPassword());
+        coreSharedHelper.saveUserFullName(user.getFullName());
+        coreSharedHelper.saveFBId(user.getFacebookId());
+        coreSharedHelper.saveTwitterId(user.getTwitterId());
+        coreSharedHelper.saveTwitterDigitsId(user.getTwitterDigitsId());
+        coreSharedHelper.saveUserCustomData(user.getCustomData());
+    }
+
+    public boolean isLoggedIn() {
+        return QBSessionManager.getInstance().getSessionParameters() != null;
     }
 
     public boolean isSessionExist() {
-        return loginType != null && !TextUtils.isEmpty(sessionToken);
+        return !TextUtils.isEmpty(QBSessionManager.getInstance().getToken());
     }
 
     public LoginType getLoginType() {
         return loginType;
     }
+
+    private LoginType getLoginTypeBySessionParameters(QBSessionParameters sessionParameters){
+        LoginType result = null;
+        if(sessionParameters == null){
+            return null;
+        }
+        String socialProvider = sessionParameters.getSocialProvider();
+        if(socialProvider == null){
+            result = LoginType.EMAIL;
+        } else if (socialProvider.equals(QBProvider.FACEBOOK)){
+            result = LoginType.FACEBOOK;
+        } else if (socialProvider.equals(QBProvider.FIREBASE_PHONE)){
+            result = LoginType.FIREBASE_PHONE;
+        } else if (socialProvider.equals(QBProvider.TWITTER_DIGITS)){ //for correct migration from TWITTER_DIGITS to FIREBASE_PHONE
+            result = LoginType.FIREBASE_PHONE;
+        }
+
+        if (result != null) {
+            loginType = result;
+        }
+
+        return result;
+    }
+
+    public enum ChatState {
+        BACKGROUND, FOREGROUND
+    }
+
 }
